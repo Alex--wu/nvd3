@@ -351,35 +351,41 @@ nv.models.lineChart = function() {
                 chart.update();
             });
 
+            // mouseover needs availableHeight so we just keep scatter mouse events inside the chart block
             lines.dispatch.on('elementMouseover.tooltip', function(evt) {
                 tooltip.data(evt).position(evt.pos).hidden(false);
 
                 if(showDistX){
-                    container.select('.nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
-                        .attr('y1', evt.pos.top - availableHeight - margin.top);
+                    container.select('.nv-distributionX .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
+                        .attr('y1', evt.relativePos[1] - availableHeight);
                 }
                 if(showDistY){
-                    container.select('.nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
-                        .attr('x2', evt.pos.left + distX.size() - margin.left);
+                    container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
+                        .attr('x2', evt.relativePos[0] + distX.size());
                 }
             });
 
-            lines.dispatch.on('elementMouseout.tooltip', function(evt) {
-                tooltip.hidden(true);
-                if(showDistX){
-                    container.select('.nv-chart-' + ' .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
-                        .attr('y1', 0);
-                }
-                if(showDistY){
-                    container.select('.nv-chart-' + ' .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
-                        .attr('x2', distY.size());
-                }
-            });
         });
 
         renderWatch.renderEnd('lineChart immediate');
         return chart;
     }
+
+    //============================================================
+    // Event Handling/Dispatching (out of chart's scope)
+    //------------------------------------------------------------
+
+    lines.dispatch.on('elementMouseout.tooltip', function(evt) {
+        tooltip.hidden(true);
+        if(showDistX){
+            container.select('.nv-distributionX .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
+                .attr('y1', 0);
+        }
+        if(showDistY){
+            container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
+                .attr('x2', distY.size());
+        }
+    });
 
     //============================================================
     // Expose Public Variables
