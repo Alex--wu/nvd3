@@ -359,9 +359,14 @@ nv.models.lineChart = function() {
                     container.select('.nv-distributionX .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
                         .attr('y1', evt.relativePos[1] - availableHeight);
                 }
-                if(showDistY){
-                    container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
-                        .attr('x2', evt.relativePos[0] + distX.size());
+                if (showDistY) {
+                    if (rightAlignYAxis) {
+                        container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
+                            .attr('x2', evt.relativePos[0] + distX.size() - availableWidth);
+                    } else {
+                        container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
+                            .attr('x2', evt.relativePos[0] + distX.size());
+                    }
                 }
             });
 
