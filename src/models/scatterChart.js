@@ -304,18 +304,10 @@ nv.models.scatterChart = function() {
             });
 
             // mouseover needs availableHeight so we just keep scatter mouse events inside the chart block
-            scatter.dispatch.on('elementMouseout.tooltip', function(evt) {
-                tooltip.hidden(true);
-                container.select('.nv-chart-' + scatter.id() + ' .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
-                    .attr('y1', 0);
-                container.select('.nv-chart-' + scatter.id() + ' .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
-                    .attr('x2', distY.size());
-            });
-
             scatter.dispatch.on('elementMouseover.tooltip', function(evt) {
-                container.select('.nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
+                container.select('.nv-distributionX .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
                     .attr('y1', evt.relativePos[1] - availableHeight);
-                container.select('.nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
+                container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
                     .attr('x2', evt.relativePos[0] + distX.size());
                 tooltip.position(evt.pos).data(evt).hidden(false);
             });
@@ -329,6 +321,18 @@ nv.models.scatterChart = function() {
         renderWatch.renderEnd('scatter with line immediate');
         return chart;
     }
+
+    //============================================================
+    // Event Handling/Dispatching (out of chart's scope)
+    //------------------------------------------------------------
+
+    scatter.dispatch.on('elementMouseout.tooltip', function(evt) {
+        tooltip.hidden(true);
+        container.select('.nv-distributionX .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
+            .attr('y1', 0);
+        container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
+            .attr('x2', distY.size());
+    });
 
     //============================================================
     // Expose Public Variables
