@@ -335,6 +335,19 @@ nv.models.lineChart = function() {
 
                 interactiveLayer.renderGuideLine(pointXLocation);
 
+                //This is for showing dist
+                if(showDistY){
+                    container.selectAll('.nv-distributionY .nv-disty')
+                        .attr('x2', distY.size());//Clean first
+                    if (rightAlignYAxis) {
+                        container.selectAll('.nv-distributionY .nv-disty-' + pointIndex)
+                            .attr('x2', pointXLocation + distX.size() - availableWidth);
+                    } else {
+                        container.selectAll('.nv-distributionY .nv-disty-' + pointIndex)
+                            .attr('x2', pointXLocation + distX.size());
+                    }
+                }
+                //End of showing dist
             });
 
             interactiveLayer.dispatch.on('elementClick', function(e) {
@@ -363,6 +376,11 @@ nv.models.lineChart = function() {
 
             interactiveLayer.dispatch.on("elementMouseout",function(e) {
                 lines.clearHighlights();
+
+                if(showDistY){
+                    container.selectAll('.nv-distributionY .nv-disty')
+                        .attr('x2', distY.size());
+                }
             });
 
             dispatch.on('changeState', function(e) {
