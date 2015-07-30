@@ -43,7 +43,6 @@ nv.models.lineChart = function() {
 
     // set options on sub-objects for this chart
     xAxis.orient('bottom').tickPadding(7);
-    yAxis.orient(rightAlignYAxis ? 'right' : 'left');
     distX.axis('x').size(3);
     distY.axis('y').size(3);
     tooltip.valueFormatter(function(d, i) {
@@ -51,33 +50,26 @@ nv.models.lineChart = function() {
     }).headerFormatter(function(d, i) {
         return xAxis.tickFormat()(d, i);
     });
-
-    tooltipX.gravity('n').classes('x-nvtooltip').contentGenerator(function(d) {
+    tooltipX.distance(0).gravity('n').classes('x-nvtooltip').contentGenerator(function (d) {
         if (d === null) {
             return '';
         }
-
-        var div = d3.select(document.createElement("div"));
-
-        div.append("span")
-            .classed("value",true)
+        var span = d3.select(document.createElement("span"));
+        span.classed("value", true)
             .html(d.point.x);
 
-        var html = div.node().outerHTML;
+        var html = span.node().outerHTML;
         return html;
     });
-    tooltipY.gravity('e').classes('y-nvtooltip').contentGenerator(function(d) {
+    tooltipY.distance(0).classes('y-nvtooltip').contentGenerator(function (d) {
         if (d === null) {
             return '';
         }
-
-        var div = d3.select(document.createElement("div"));
-
-        div.append("span")
-            .classed("value",true)
+        var span = d3.select(document.createElement("span"));
+        span.classed("value", true)
             .html(d.point.y);
 
-        var html = div.node().outerHTML;
+        var html = span.node().outerHTML;
         return html;
     });
 
@@ -389,17 +381,18 @@ nv.models.lineChart = function() {
                 if (showMainTooltip)tooltip.data(evt).position(evt.pos).hidden(false);
                 if (showXTooltip) {
                     var posX = {
-                        left: x(evt.pointIndex) + margin.left,
-                        top: y.range()[0] + margin.top
+                        left: evt.pos['left'],
+                        top: evt.pos['top'] - y(evt.point['y']) + availableHeight
                     };
                     evt.point.x = xAxis.tickFormat()(lines.x()(evt.point, evt.pointIndex));
                     tooltipX.data(evt).position(posX).hidden(false);
                 }
                 if (showYTooltip) {
                     var posY = {
-                        left: x.range()[0] + margin.left,
-                        top: evt.pos[1]
+                        left: evt.pos['left'] - x(evt.point['x']),
+                        top: evt.pos['top']
                     };
+                    if (rightAlignYAxis) posY.left = evt.pos['left'] - x(evt.point['x']) + availableWidth;
                     evt.point.y = yAxis.tickFormat()(lines.y()(evt.point, evt.pointIndex));
                     tooltipY.data(evt).position(posY).hidden(false);
                 }
@@ -511,6 +504,7 @@ nv.models.lineChart = function() {
         rightAlignYAxis: {get: function(){return rightAlignYAxis;}, set: function(_){
             rightAlignYAxis = _;
             yAxis.orient( rightAlignYAxis ? 'right' : 'left');
+            tooltipY.gravity(rightAlignYAxis ? 'w' : 'e');
         }},
         useInteractiveGuideline: {get: function(){return useInteractiveGuideline;}, set: function(_){
             useInteractiveGuideline = _;
