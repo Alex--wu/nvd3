@@ -13,6 +13,8 @@ nv.models.lineChart = function() {
         , distX = nv.models.distribution()
         , distY = nv.models.distribution()
         , tooltip = nv.models.tooltip()
+        , tooltipX = nv.models.tooltip()
+        , tooltipY = nv.models.tooltip()
         ;
 
     var margin = {top: 30, right: 20, bottom: 50, left: 60}
@@ -27,6 +29,9 @@ nv.models.lineChart = function() {
         , useInteractiveGuideline = false
         , showDistX = false
         , showDistY = false
+        , showXTooltip = false
+        , showYTooltip = false
+        , showMainTooltip = true
         , x
         , y
         , state = nv.utils.state()
@@ -47,6 +52,34 @@ nv.models.lineChart = function() {
         return xAxis.tickFormat()(d, i);
     });
 
+    tooltipX.gravity('n').classes('x-nvtooltip').contentGenerator(function(d) {
+        if (d === null) {
+            return '';
+        }
+
+        var div = d3.select(document.createElement("div"));
+
+        div.append("span")
+            .classed("value",true)
+            .html(d.point.x);
+
+        var html = div.node().outerHTML;
+        return html;
+    });
+    tooltipY.gravity('e').classes('y-nvtooltip').contentGenerator(function(d) {
+        if (d === null) {
+            return '';
+        }
+
+        var div = d3.select(document.createElement("div"));
+
+        div.append("span")
+            .classed("value",true)
+            .html(d.point.y);
+
+        var html = div.node().outerHTML;
+        return html;
+    });
 
     //============================================================
     // Private Variables
@@ -353,8 +386,24 @@ nv.models.lineChart = function() {
 
             // mouseover needs availableHeight so we just keep scatter mouse events inside the chart block
             lines.dispatch.on('elementMouseover.tooltip', function(evt) {
-                tooltip.data(evt).position(evt.pos).hidden(false);
-
+                if (showMainTooltip)tooltip.data(evt).position(evt.pos).hidden(false);
+                if (showXTooltip) {
+                    var posX = {
+                        left: x(evt.pointIndex) + margin.left,
+                        top: y.range()[0] + margin.top
+                    };
+                    evt.point.x = xAxis.tickFormat()(lines.x()(evt.point, evt.pointIndex));
+                    tooltipX.data(evt).position(posX).hidden(false);
+                }
+                if (showYTooltip) {
+                    var posY = {
+                        left: x.range()[0] + margin.left,
+                        top: evt.pos[1]
+                    };
+                    evt.point.y = yAxis.tickFormat()(lines.y()(evt.point, evt.pointIndex));
+                    tooltipY.data(evt).position(posY).hidden(false);
+                }
+                
                 if(showDistX){
                     container.select('.nv-distributionX .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
                         .attr('y1', evt.relativePos[1] - availableHeight);
@@ -381,7 +430,10 @@ nv.models.lineChart = function() {
     //------------------------------------------------------------
 
     lines.dispatch.on('elementMouseout.tooltip', function(evt) {
-        tooltip.hidden(true);
+        if (showMainTooltip)tooltip.hidden(true);
+        if (showXTooltip)tooltipX.hidden(true);
+        if (showYTooltip)tooltipY.hidden(true);
+        
         if(showDistX){
             container.select('.nv-distributionX .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
                 .attr('y1', 0);
@@ -407,7 +459,6 @@ nv.models.lineChart = function() {
     chart.interactiveLayer = interactiveLayer;
     chart.tooltip = tooltip;
 
-    chart.dispatch = dispatch;
     chart.options = nv.utils.optionsFunc.bind(chart);
 
     chart._options = Object.create({}, {
@@ -418,6 +469,9 @@ nv.models.lineChart = function() {
         showLegend: {get: function(){return showLegend;}, set: function(_){showLegend=_;}},
         showXAxis:      {get: function(){return showXAxis;}, set: function(_){showXAxis=_;}},
         showYAxis:    {get: function(){return showYAxis;}, set: function(_){showYAxis=_;}},
+        showXTooltip:      {get: function(){return showXTooltip;}, set: function(_){showXTooltip=_;}},
+        showYTooltip:    {get: function(){return showYTooltip;}, set: function(_){showYTooltip=_;}},
+        showMainTooltip:    {get: function(){return showMainTooltip;}, set: function(_){showMainTooltip=_;}},
         showDistX:      {get: function(){return showDistX;}, set: function(_){showDistX=_;}},
         showDistY:    {get: function(){return showDistY;}, set: function(_){showDistY=_;}},
         defaultState:    {get: function(){return defaultState;}, set: function(_){defaultState=_;}},
