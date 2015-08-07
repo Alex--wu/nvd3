@@ -13,6 +13,8 @@ nv.models.lineChart = function() {
         , distX = nv.models.distribution()
         , distY = nv.models.distribution()
         , tooltip = nv.models.tooltip()
+        , tooltipX = nv.models.tooltip()
+        , tooltipY = nv.models.tooltip()
         ;
 
     var margin = {top: 30, right: 20, bottom: 50, left: 60}
@@ -27,6 +29,9 @@ nv.models.lineChart = function() {
         , useInteractiveGuideline = false
         , showDistX = false
         , showDistY = false
+        , showXTooltip = false
+        , showYTooltip = false
+        , showMainTooltip = true
         , x
         , y
         , state = nv.utils.state()
@@ -38,7 +43,7 @@ nv.models.lineChart = function() {
 
     // set options on sub-objects for this chart
     xAxis.orient('bottom').tickPadding(7);
-    yAxis.orient(rightAlignYAxis ? 'right' : 'left');
+    yAxis.orient('left');
     distX.axis('x').size(3);
     distY.axis('y').size(3);
     tooltip.valueFormatter(function(d, i) {
@@ -46,7 +51,28 @@ nv.models.lineChart = function() {
     }).headerFormatter(function(d, i) {
         return xAxis.tickFormat()(d, i);
     });
+    tooltipX.distance(0).gravity('n').classes('x-nvtooltip').contentGenerator(function (d) {
+        if (d === null) {
+            return '';
+        }
+        var span = d3.select(document.createElement("span"));
+        span.classed("value", true)
+            .html(d.point.x);
 
+        var html = span.node().outerHTML;
+        return html;
+    });
+    tooltipY.distance(0).gravity('e').classes('y-nvtooltip').contentGenerator(function (d) {
+        if (d === null) {
+            return '';
+        }
+        var span = d3.select(document.createElement("span"));
+        span.classed("value", true)
+            .html(d.point.y);
+
+        var html = span.node().outerHTML;
+        return html;
+    });
 
     //============================================================
     // Private Variables
@@ -309,6 +335,19 @@ nv.models.lineChart = function() {
 
                 interactiveLayer.renderGuideLine(pointXLocation);
 
+                //This is for showing dist
+                if(showDistY){
+                    container.selectAll('.nv-distributionY .nv-disty')
+                        .attr('x2', distY.size());//Clean first
+                    if (rightAlignYAxis) {
+                        container.selectAll('.nv-distributionY .nv-disty-' + pointIndex)
+                            .attr('x2', pointXLocation + distX.size() - availableWidth);
+                    } else {
+                        container.selectAll('.nv-distributionY .nv-disty-' + pointIndex)
+                            .attr('x2', pointXLocation + distX.size());
+                    }
+                }
+                //End of showing dist
             });
 
             interactiveLayer.dispatch.on('elementClick', function(e) {
@@ -337,6 +376,11 @@ nv.models.lineChart = function() {
 
             interactiveLayer.dispatch.on("elementMouseout",function(e) {
                 lines.clearHighlights();
+
+                if(showDistY){
+                    container.selectAll('.nv-distributionY .nv-disty')
+                        .attr('x2', distY.size());
+                }
             });
 
             dispatch.on('changeState', function(e) {
@@ -353,15 +397,37 @@ nv.models.lineChart = function() {
 
             // mouseover needs availableHeight so we just keep scatter mouse events inside the chart block
             lines.dispatch.on('elementMouseover.tooltip', function(evt) {
-                tooltip.data(evt).position(evt.pos).hidden(false);
-
+                if (showMainTooltip)tooltip.data(evt).position(evt.pos).hidden(false);
+                if (showXTooltip) {
+                    var posX = {
+                        left: evt.pos['left'],
+                        top: evt.pos['top'] - y(evt.point['y']) + availableHeight
+                    };
+                    //evt.point.x = xAxis.tickFormat()(lines.x()(evt.point, evt.pointIndex));
+                    tooltipX.data(evt).position(posX).hidden(false);
+                }
+                if (showYTooltip) {
+                    var posY = {
+                        left: evt.pos['left'] - x(evt.point['x']),
+                        top: evt.pos['top']
+                    };
+                    if (rightAlignYAxis) posY.left = evt.pos['left'] - x(evt.point['x']) + availableWidth;
+                    //evt.point.y = yAxis.tickFormat()(lines.y()(evt.point, evt.pointIndex));
+                    tooltipY.data(evt).position(posY).hidden(false);
+                }
+                
                 if(showDistX){
                     container.select('.nv-distributionX .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
                         .attr('y1', evt.relativePos[1] - availableHeight);
                 }
-                if(showDistY){
-                    container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
-                        .attr('x2', evt.relativePos[0] + distX.size());
+                if (showDistY) {
+                    if (rightAlignYAxis) {
+                        container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
+                            .attr('x2', evt.relativePos[0] + distX.size() - availableWidth);
+                    } else {
+                        container.select('.nv-distributionY .nv-series-' + evt.seriesIndex + ' .nv-disty-' + evt.pointIndex)
+                            .attr('x2', evt.relativePos[0] + distX.size());
+                    }
                 }
             });
 
@@ -376,7 +442,10 @@ nv.models.lineChart = function() {
     //------------------------------------------------------------
 
     lines.dispatch.on('elementMouseout.tooltip', function(evt) {
-        tooltip.hidden(true);
+        if (showMainTooltip)tooltip.hidden(true);
+        if (showXTooltip)tooltipX.hidden(true);
+        if (showYTooltip)tooltipY.hidden(true);
+        
         if(showDistX){
             container.select('.nv-distributionX .nv-series-' + evt.seriesIndex + ' .nv-distx-' + evt.pointIndex)
                 .attr('y1', 0);
@@ -402,7 +471,6 @@ nv.models.lineChart = function() {
     chart.interactiveLayer = interactiveLayer;
     chart.tooltip = tooltip;
 
-    chart.dispatch = dispatch;
     chart.options = nv.utils.optionsFunc.bind(chart);
 
     chart._options = Object.create({}, {
@@ -413,6 +481,9 @@ nv.models.lineChart = function() {
         showLegend: {get: function(){return showLegend;}, set: function(_){showLegend=_;}},
         showXAxis:      {get: function(){return showXAxis;}, set: function(_){showXAxis=_;}},
         showYAxis:    {get: function(){return showYAxis;}, set: function(_){showYAxis=_;}},
+        showXTooltip:      {get: function(){return showXTooltip;}, set: function(_){showXTooltip=_;}},
+        showYTooltip:    {get: function(){return showYTooltip;}, set: function(_){showYTooltip=_;}},
+        showMainTooltip:    {get: function(){return showMainTooltip;}, set: function(_){showMainTooltip=_;}},
         showDistX:      {get: function(){return showDistX;}, set: function(_){showDistX=_;}},
         showDistY:    {get: function(){return showDistY;}, set: function(_){showDistY=_;}},
         defaultState:    {get: function(){return defaultState;}, set: function(_){defaultState=_;}},
@@ -452,6 +523,7 @@ nv.models.lineChart = function() {
         rightAlignYAxis: {get: function(){return rightAlignYAxis;}, set: function(_){
             rightAlignYAxis = _;
             yAxis.orient( rightAlignYAxis ? 'right' : 'left');
+            tooltipY.gravity(rightAlignYAxis ? 'w' : 'e');
         }},
         useInteractiveGuideline: {get: function(){return useInteractiveGuideline;}, set: function(_){
             useInteractiveGuideline = _;
