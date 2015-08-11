@@ -14,6 +14,8 @@ nv.models.multiBarChart = function() {
         , distX = nv.models.distribution()
         , distY = nv.models.distribution()
         , tooltip = nv.models.tooltip()
+        , tooltipX = nv.models.tooltip()
+        , tooltipY = nv.models.tooltip()
         ;
 
     var margin = {top: 30, right: 20, bottom: 50, left: 60}
@@ -27,6 +29,9 @@ nv.models.multiBarChart = function() {
         , showYAxis = true
         , showDistX = false
         , showDistY = false
+        , showXTooltip = false
+        , showYTooltip = false
+        , showMainTooltip = true
         , rightAlignYAxis = false
         , reduceXTicks = true // if false a tick will show for every data point
         , staggerLabels = false
@@ -72,6 +77,28 @@ nv.models.multiBarChart = function() {
         .headerFormatter(function(d, i) {
             return xAxis.tickFormat()(d, i);
         });
+    tooltipX.distance(0).gravity('n').classes('x-nvtooltip').contentGenerator(function (d) {
+        if (d === null) {
+            return '';
+        }
+        var span = d3.select(document.createElement("span"));
+        span.classed("value", true)
+            .html(d.data.x);
+
+        var html = span.node().outerHTML;
+        return html;
+    });
+    tooltipY.distance(0).gravity('e').classes('y-nvtooltip').contentGenerator(function (d) {
+        if (d === null) {
+            return '';
+        }
+        var span = d3.select(document.createElement("span"));
+        span.classed("value", true)
+            .html(d.data.y);
+
+        var html = span.node().outerHTML;
+        return html;
+    });
 
     controls.updateState(false);
 
@@ -107,6 +134,8 @@ nv.models.multiBarChart = function() {
         renderWatch.models(multibar);
         if (showXAxis) renderWatch.models(xAxis);
         if (showYAxis) renderWatch.models(yAxis);
+        if (showDistX) renderWatch.models(distX);
+        if (showDistY) renderWatch.models(distY);
 
         selection.each(function(data) {
             var container = d3.select(this),
@@ -386,8 +415,25 @@ nv.models.multiBarChart = function() {
             value: chart.y()(evt.data),
             color: evt.color
         };
-        tooltip.data(evt).hidden(false);
 
+        if (showMainTooltip) {
+            tooltip.data(evt).hidden(false);
+        }
+        if (showXTooltip) {
+            var posX = {
+                left: d3.event.pageX - d3.event.offsetX + chart.xScale()(evt.data.x) + chart.margin().left,
+                top: d3.event.pageY - d3.event.offsetY + chart.multibar.height() + chart.margin().top
+            };
+            tooltipX.data(evt).position(posX).hidden(false);
+        }
+        if (showYTooltip) {
+            var posY = {
+                left: d3.event.pageX - d3.event.offsetX + chart.margin().left,
+                top: d3.event.pageY - d3.event.offsetY + chart.yScale()(evt.data.y) + chart.margin().top
+            };
+            if (rightAlignYAxis) posY.left = d3.event.pageX - d3.event.offsetX + chart.margin().left + chart.multibar.width();
+            tooltipY.data(evt).position(posY).hidden(false);
+        }
         if(showDistX){
             d3.select(chart.container).selectAll('.nv-distributionX .nv-series-' + evt.data.series + ' .nv-distx-' + evt.index)
                 .attr('y1', chart.yScale()(evt.data.y) - chart.multibar.height());
@@ -404,7 +450,9 @@ nv.models.multiBarChart = function() {
     });
 
     multibar.dispatch.on('elementMouseout.tooltip', function(evt) {
-        tooltip.hidden(true);
+        if (showMainTooltip)tooltip.hidden(true);
+        if (showXTooltip)tooltipX.hidden(true);
+        if (showYTooltip)tooltipY.hidden(true);
 
         if(showDistX){
             d3.select(chart.container).selectAll('.nv-distributionX .nv-series-' + evt.data.series + ' .nv-distx-' + evt.index)
@@ -447,6 +495,9 @@ nv.models.multiBarChart = function() {
         controlLabels: {get: function(){return controlLabels;}, set: function(_){controlLabels=_;}},
         showXAxis:      {get: function(){return showXAxis;}, set: function(_){showXAxis=_;}},
         showYAxis:    {get: function(){return showYAxis;}, set: function(_){showYAxis=_;}},
+        showXTooltip:      {get: function(){return showXTooltip;}, set: function(_){showXTooltip=_;}},
+        showYTooltip:    {get: function(){return showYTooltip;}, set: function(_){showYTooltip=_;}},
+        showMainTooltip:    {get: function(){return showMainTooltip;}, set: function(_){showMainTooltip=_;}},
         showDistX:    {get: function(){return showDistX;}, set: function(_){showDistX=_;}},
         showDistY:    {get: function(){return showDistY;}, set: function(_){showDistY=_;}},
         defaultState:    {get: function(){return defaultState;}, set: function(_){defaultState=_;}},
@@ -490,6 +541,7 @@ nv.models.multiBarChart = function() {
         rightAlignYAxis: {get: function(){return rightAlignYAxis;}, set: function(_){
             rightAlignYAxis = _;
             yAxis.orient( rightAlignYAxis ? 'right' : 'left');
+            tooltipY.gravity(rightAlignYAxis ? 'w' : 'e');
         }},
         barColor:  {get: function(){return multibar.barColor;}, set: function(_){
             multibar.barColor(_);
